@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cubic Bezier to LUT Converter</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.15/dist/tailwind.min.css" rel="stylesheet">
+	<link rel="icon" type="image/x-icon" href="https://cdn.discordapp.com/attachments/1150513206620586075/1150513520971096084/graph-up.svg">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white p-6 rounded shadow-md">
+		<p style="text-align:right" class="text-sm text-gray-700">by: <a class="text-blue-500" target="_blank" href="https://www.youtube.com/@itshappygolucky">Happy</a></p>
+        <h1 class="text-2xl font-semibold mb-4">Cubic Bezier to LUT Converter</h1>
+        
+        <div class="mb-4">
+            <label for="cubicBezierInput" class="block text-sm font-medium text-gray-700">Cubic Bezier Values:</label>
+            <input type="text" id="cubicBezierInput" class="mt-1 p-2 w-full border rounded-md" placeholder="format: .17,.65,.62,.37">
+			<p class="text-sm text-gray-700">Get values from <a class="text-blue-500" target="_blank" href="https://cubic-bezier.com/">here</a>.</p>
+        </div>
+
+        <div class="mb-4">
+            <label for="xMinInput" class="block text-sm font-medium text-gray-700">Minimum X Value:</label>
+            <input type="number" id="xMinInput" class="mt-1 p-2 w-full border rounded-md" min="0.1" max="200" value="0.1">
+        </div>
+
+        <div class="mb-4">
+            <label for="xMaxInput" class="block text-sm font-medium text-gray-700">Maximum X Value:</label>
+            <input type="number" id="xMaxInput" class="mt-1 p-2 w-full border rounded-md" min="1" max="200" value="200">
+        </div>
+
+        <div class="mb-4">
+            <label for="yMinInput" class="block text-sm font-medium text-gray-700">Minimum Y Value:</label>
+            <input type="number" id="yMinInput" class="mt-1 p-2 w-full border rounded-md" min="0.1" max="4" value="1">
+        </div>
+
+        <div class="mb-4">
+            <label for="yMaxInput" class="block text-sm font-medium text-gray-700">Maximum Y Value:</label>
+            <input type="number" id="yMaxInput" class="mt-1 p-2 w-full border rounded-md" min="1.1" max="4" value="4">
+        </div>
+
+        <button id="convertButton" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Convert</button>
+
+        <div class="mt-4">
+            <label for="lutOutput" class="block text-sm font-medium text-gray-700">LUT Values:</label>
+            <textarea id="lutOutput" class="mt-1 p-2 w-full h-32 border rounded-md" readonly></textarea>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("convertButton").addEventListener("click", function () {
+            const cubicBezierInput = document.getElementById("cubicBezierInput").value;
+            const xMin = parseFloat(document.getElementById("xMinInput").value);
+            const xMax = parseFloat(document.getElementById("xMaxInput").value);
+            const yMin = parseFloat(document.getElementById("yMinInput").value);
+            const yMax = parseFloat(document.getElementById("yMaxInput").value);
+            const lutOutput = document.getElementById("lutOutput");
+
+            const cubicBezierValues = cubicBezierInput.split(',').map(parseFloat);
+
+            if (cubicBezierValues.length !== 4 || cubicBezierValues.some(isNaN)) {
+                lutOutput.value = "Invalid cubic bezier values. Please use the format x1,y1,x2,y2.";
+                return;
+            }
+
+            const lutValues = [];
+            for (let i = xMin; i < xMax; i++) {
+                const t = (i - xMin) / (xMax - xMin);
+                const x = i;
+                const y = cubicBezier(t, cubicBezierValues[1], cubicBezierValues[3]) * (yMax - yMin) + yMin;
+
+                lutValues.push(`${x},${y.toFixed(6)}`);
+            }
+
+            // Add the modified last value
+            lutValues.push(`${xMax+1},${yMax.toFixed(6)}`);
+			lutValues.push(`${xMax+2},${yMax.toFixed(6)}`);
+
+            lutOutput.value = lutValues.join('; ');
+        });
+
+        function cubicBezier(t, p0, p1) {
+            return (
+                3 * (1 - t) * (1 - t) * t * p0 +
+                3 * (1 - t) * t * t * p1 +
+                t * t * t
+            );
+        }
+    </script>
+</body>
+</html>
