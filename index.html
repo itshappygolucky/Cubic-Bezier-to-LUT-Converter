@@ -63,12 +63,13 @@
             }
 
             const lutValues = [];
-            for (let i = xMin; i < xMax; i++) {
-                const t = (i - xMin) / (xMax - xMin);
-                const x = i;
+            const xStep = (xMax - xMin) / 254; // Calculate the step size for x values to get 255 values
+            for (let i = 0; i < 255; i++) {
+                const x = xMin + i * xStep;
+                const t = (x - xMin) / (xMax - xMin);
                 const y = cubicBezier(t, cubicBezierValues[1], cubicBezierValues[3]) * (yMax - yMin) + yMin;
 
-                lutValues.push(`${x},${y.toFixed(6)}`);
+                lutValues.push(`${x.toFixed(6)},${y.toFixed(6)}`);
             }
 
             // Add the modified last value
