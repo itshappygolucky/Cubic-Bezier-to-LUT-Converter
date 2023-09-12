@@ -3,89 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cubic Bezier to LUT Converter</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.15/dist/tailwind.min.css" rel="stylesheet">
+    <title>Cubic Bezier Curve to LUT Converter</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 	<link rel="icon" type="image/x-icon" href="https://cdn.discordapp.com/attachments/1150513206620586075/1150513520971096084/graph-up.svg">
+	    <style>
+			/* Add custom CSS for layout */
+			.container-both {
+				display: block; /* display: grid; */
+				grid-template-columns: 1fr 1fr;
+				gap: 20px; /* Adjust the gap as needed */
+			}
+			.canvas-container {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+			}
+		</style>
 </head>
 <body class="bg-gray-100 p-8">
-    <div class="max-w-md mx-auto bg-white p-6 rounded shadow-md">
+	<div id="container-both" class="container-both max-w-3xl mx-auto">
+    <div class="max-w-lg mx-auto bg-white rounded p-6 shadow">
 		<p style="text-align:right" class="text-sm text-gray-700">by: <a class="text-blue-500" target="_blank" href="https://www.youtube.com/@itshappygolucky">Happy</a></p>
-        <h1 class="text-2xl font-semibold mb-4">Cubic Bezier to LUT Converter</h1>
-        
+        <h1 class="text-2xl font-semibold mb-4">Cubic Bezier Curve to LUT Converter</h1>
         <div class="mb-4">
-            <label for="cubicBezierInput" class="block text-sm font-medium text-gray-700">Cubic Bezier Values:</label>
-            <input type="text" id="cubicBezierInput" class="mt-1 p-2 w-full border rounded-md" placeholder="format: .17,.65,.62,.37">
+            <label for="abcd" class="block text-sm font-medium text-gray-700">Cubic-Bezier Values:</label>
+            <input type="text" id="abcd" class="mt-1 p-2 border rounded w-full" value="0.17,0.65,0.62,0.37">
 			<p class="text-sm text-gray-700">Get values from <a class="text-blue-500" target="_blank" href="https://cubic-bezier.com/">here</a>.</p>
         </div>
-
         <div class="mb-4">
-            <label for="xMinInput" class="block text-sm font-medium text-gray-700">Minimum X Value:</label>
-            <input type="number" id="xMinInput" class="mt-1 p-2 w-full border rounded-md" min="0.1" max="200" value="0.1">
+            <label for="xMin" class="block text-sm font-medium text-gray-700">X Min:</label>
+            <input type="number" id="xMin" class="mt-1 p-2 border rounded w-full" placeholder="Greater than 0" value="0.01">
         </div>
-
         <div class="mb-4">
-            <label for="xMaxInput" class="block text-sm font-medium text-gray-700">Maximum X Value:</label>
-            <input type="number" id="xMaxInput" class="mt-1 p-2 w-full border rounded-md" min="1" max="200" value="200">
+            <label for="xMax" class="block text-sm font-medium text-gray-700">X Max:</label>
+            <input type="number" id="xMax" class="mt-1 p-2 border rounded w-full" value="100">
         </div>
-
         <div class="mb-4">
-            <label for="yMinInput" class="block text-sm font-medium text-gray-700">Minimum Y Value:</label>
-            <input type="number" id="yMinInput" class="mt-1 p-2 w-full border rounded-md" min="0.1" max="4" value="1">
+            <label for="yMin" class="block text-sm font-medium text-gray-700">Y Min:</label>
+            <input type="number" id="yMin" class="mt-1 p-2 border rounded w-full" value="1">
         </div>
-
         <div class="mb-4">
-            <label for="yMaxInput" class="block text-sm font-medium text-gray-700">Maximum Y Value:</label>
-            <input type="number" id="yMaxInput" class="mt-1 p-2 w-full border rounded-md" min="1.1" max="4" value="4">
+            <label for="yMax" class="block text-sm font-medium text-gray-700">Y Max:</label>
+            <input type="number" id="yMax" class="mt-1 p-2 border rounded w-full" value="2">
         </div>
-
-        <button id="convertButton" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Convert</button>
-
-        <div class="mt-4">
+        <div class="mb-4">
+            <button id="convertButton" class="bg-blue-500 text-white px-4 py-2 rounded">Convert</button>
+        </div>
+        <div class="mb-4">
             <label for="lutOutput" class="block text-sm font-medium text-gray-700">LUT Values:</label>
-            <textarea id="lutOutput" class="mt-1 p-2 w-full h-32 border rounded-md" readonly></textarea>
+            <textarea id="lutOutput" class="mt-1 p-2 border rounded w-full" rows="4" readonly></textarea>
+        </div>
+        <div>
+            <button id="copyButton" class="bg-green-500 text-white px-4 py-2 rounded">Copy to Clipboard</button>
+			<button id="toggleGraphButton" class="bg-blue-500 text-white px-4 py-2 rounded">Show Graph</button>
         </div>
     </div>
-
+	
+	<div class="canvas-container">
+		<canvas id="bezierCanvas" width="300" height="300" style="border: 1px solid black; display: none;"></canvas>
+	</div>
+	</div>
+	
     <script>
-        document.getElementById("convertButton").addEventListener("click", function () {
-            const cubicBezierInput = document.getElementById("cubicBezierInput").value;
-            const xMin = parseFloat(document.getElementById("xMinInput").value);
-            const xMax = parseFloat(document.getElementById("xMaxInput").value);
-            const yMin = parseFloat(document.getElementById("yMinInput").value);
-            const yMax = parseFloat(document.getElementById("yMaxInput").value);
-            const lutOutput = document.getElementById("lutOutput");
+        document.addEventListener('DOMContentLoaded', function() {
+            const abcdInput = document.getElementById('abcd');
+            const xMinInput = document.getElementById('xMin');
+            const xMaxInput = document.getElementById('xMax');
+            const yMinInput = document.getElementById('yMin');
+            const yMaxInput = document.getElementById('yMax');
+            const bezierCanvas = document.getElementById('bezierCanvas'); // Get the canvas element by ID
+            const ctx = bezierCanvas.getContext('2d');
+            const convertButton = document.getElementById('convertButton');
+            const lutOutput = document.getElementById('lutOutput');
+            const copyButton = document.getElementById('copyButton');
 
-            const cubicBezierValues = cubicBezierInput.split(',').map(parseFloat);
+            function drawCubicBezier(a, b, c, d, xMin, xMax, yMin, yMax) {
+                ctx.clearRect(0, 0, bezierCanvas.width, bezierCanvas.height);
+                ctx.beginPath();
+                ctx.moveTo(0, bezierCanvas.height);
+                for (let t = 0; t <= 1; t += 0.001) {
+                    const x = xMin + (xMax - xMin) * (3 * a * t + (3 * c - 6 * a) * t ** 2 + (1 + 3 * a - 3 * c) * t ** 3);
+                    const y = yMin + (yMax - yMin) * (3 * b * t + (3 * d - 6 * b) * t ** 2 + (1 + 3 * b - 3 * d) * t ** 3);
+                    ctx.lineTo(x / xMax * bezierCanvas.width, (1 - y / yMax) * bezierCanvas.height);
+                }
+                ctx.strokeStyle = 'blue';
+                ctx.stroke();
 
-            if (cubicBezierValues.length !== 4 || cubicBezierValues.some(isNaN)) {
-                lutOutput.value = "Invalid cubic bezier values. Please use the format x1,y1,x2,y2.";
-                return;
+                // Draw control points
+                ctx.beginPath();
+                ctx.arc(a * bezierCanvas.width, (1 - b) * bezierCanvas.height, 5, 0, Math.PI * 2);
+                ctx.fillStyle = 'green';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(c * bezierCanvas.width, (1 - d) * bezierCanvas.height, 5, 0, Math.PI * 2);
+                ctx.fillStyle = 'red';
+                ctx.fill();
             }
+			
+            abcdInput.addEventListener('input', function() {
+                const [a, b, c, d] = abcdInput.value.split(',').map(parseFloat);
+                drawCubicBezier(a, b, c, d, parseFloat(xMinInput.value), parseFloat(xMaxInput.value), 0*parseFloat(yMinInput.value), parseFloat(yMaxInput.value));
+            });
 
-            const lutValues = [];
-            const xStep = (xMax - xMin) / 254; // Calculate the step size for x values to get 255 values
-            for (let i = 0; i < 255; i++) {
-                const x = xMin + i * xStep;
-                const t = (x - xMin) / (xMax - xMin);
-                const y = cubicBezier(t, cubicBezierValues[1], cubicBezierValues[3]) * (yMax - yMin) + yMin;
+            convertButton.addEventListener('click', function() {
+                const [a, b, c, d] = abcdInput.value.split(',').map(parseFloat);
+                const xMin = parseFloat(xMinInput.value);
+                const xMax = parseFloat(xMaxInput.value);
+                const yMin = parseFloat(yMinInput.value);
+                const yMax = parseFloat(yMaxInput.value);
 
-                lutValues.push(`${x.toFixed(6)},${y.toFixed(6)}`);
-            }
+                const lutValues = [];
+                for (let x = 0; x <= 255; x++) {
+                    const t = x / 255;
+                    const xt = xMin + (xMax - xMin) * (3 * a * t + (3 * c - 6 * a) * t ** 2 + (1 + 3 * a - 3 * c) * t ** 3);
+                    const yt = yMin + (yMax - yMin) * (3 * b * t + (3 * d - 6 * b) * t ** 2 + (1 + 3 * b - 3 * d) * t ** 3);
+                    lutValues.push(`${xt.toFixed(6)},${yt.toFixed(6)}`);
+                }
+				
+				lutValues.push(`${xMax+1},${yMax.toFixed(6)}`);
 
-            // Add the modified last value
-            lutValues.push(`${xMax+1},${yMax.toFixed(6)}`);
-			lutValues.push(`${xMax+2},${yMax.toFixed(6)}`);
+                lutOutput.value = lutValues.join('; ');
+            });
 
-            lutOutput.value = lutValues.join('; ');
+            copyButton.addEventListener('click', function() {
+                lutOutput.select();
+                document.execCommand('copy');
+                alert('LUT values copied to clipboard!');
+            });
+
+            drawCubicBezier(0.17, 0.65, 0.62, 0.37, 0, 100, bezierCanvas.height * 0, bezierCanvas.height);
+
         });
+		
+		const toggleGraphButton = document.getElementById('toggleGraphButton');
+        const bezierCanvas = document.getElementById('bezierCanvas');
+		const containerBoth = document.getElementById('container-both');
 
-        function cubicBezier(t, p0, p1) {
-            return (
-                3 * (1 - t) * (1 - t) * t * p0 +
-                3 * (1 - t) * t * t * p1 +
-                t * t * t
-            );
+        // Initial state, canvas is visible
+        let isGraphVisible = true;
+
+        // Function to toggle the graph's visibility
+        function toggleGraphVisibility() {
+            if (isGraphVisible) {
+                bezierCanvas.style.display = 'none';
+                toggleGraphButton.textContent = 'Show Graph';
+				containerBoth.style.display = 'block';
+            } else {
+                bezierCanvas.style.display = 'block';
+                toggleGraphButton.textContent = 'Hide Graph';
+				containerBoth.style.display = 'grid';
+            }
+            isGraphVisible = !isGraphVisible;
         }
+
+        // Add click event listener to toggle button
+        toggleGraphButton.addEventListener('click', toggleGraphVisibility);
+
     </script>
 </body>
 </html>
